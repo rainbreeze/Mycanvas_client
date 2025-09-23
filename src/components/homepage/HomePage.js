@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import Header from '../common/Header';
 import Footer from '../common/Footer';
 import Middle from './Middle';
@@ -8,19 +8,28 @@ import ContainerWrapper from './ContainerWrapper';
 import InfoCardContainer from './InfoCardContainer';
 import LiveRankingContainer from './LiveRankingContainer'
 
-const HomePage = () => (
-    <div>
-        <Header />
-        <Middle>
-            <ContainerWrapper>
-                <StartGameContainer />
-                <InfoCardContainer></InfoCardContainer>
-                <ImageSlider />
-                <LiveRankingContainer></LiveRankingContainer>
-            </ContainerWrapper>
-        </Middle>
-        <Footer />
-    </div>
-);
+const HomePage = () => {
+    useEffect(() => {
+        fetch(`${process.env.REACT_APP_API_URL}/hello`)
+            .then(res => res.json())
+            .then(data => console.log(data.message))
+            .catch(err => console.error(err));
+    }, []);
+
+    return (
+        <div>
+            <Header />
+            <Middle>
+                <ContainerWrapper>
+                    <StartGameContainer />
+                    <InfoCardContainer></InfoCardContainer>
+                    <ImageSlider />
+                    <LiveRankingContainer></LiveRankingContainer>
+                </ContainerWrapper>
+            </Middle>
+            <Footer />
+        </div>
+    );
+};
 
 export default HomePage;
