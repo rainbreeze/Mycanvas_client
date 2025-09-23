@@ -74,26 +74,6 @@ const Header = () => {
                             홈
                         </NavLink>
                     </NavItem>
-                    <NavItem scrolled={scrolled}>
-                        <NavLink as={Link} to="/game">
-                            게임
-                        </NavLink>
-                    </NavItem>
-                    <NavItem scrolled={scrolled}>
-                        <NavLink as={Link} to="/playlist">
-                            음악
-                        </NavLink>
-                    </NavItem>
-                    <NavItem scrolled={scrolled}>
-                        <NavLink as={Link} to="/viewreview">
-                            감상평
-                        </NavLink>
-                    </NavItem>
-                    <NavItem scrolled={scrolled}>
-                        <NavLink as={Link} to="/test">
-                            테스트
-                        </NavLink>
-                    </NavItem>
                 </NavList>
             </NavLeft>
 
@@ -147,32 +127,6 @@ const Header = () => {
                     </TextBox>
                 </SidebarBanner>
                 <SidebarList>
-                    <SidebarItem onClick={() => setIsSidebarOpen(false)}>
-                        <NavLink as={Link} to="/game">
-                            게임
-                        </NavLink>
-                    </SidebarItem>
-                    <SidebarItem onClick={() => setIsSidebarOpen(false)}>
-                        <NavLink as={Link} to="/viewreview">
-                            감상평
-                        </NavLink>
-                    </SidebarItem>
-                    <SidebarItem onClick={() => setIsSidebarOpen(false)}>
-                        <NavLink as={Link} to="/ranking">
-                            랭킹
-                        </NavLink>
-                    </SidebarItem>
-                    <SidebarItem onClick={() => setIsSidebarOpen(false)}>
-                        <NavLink as={Link} to="/test">
-                            테스트
-                        </NavLink>
-                    </SidebarItem>
-                    <SidebarItem onClick={() => setIsSidebarOpen(false)}>
-                        <NavLink as={Link} to="/playlist">
-                            음악
-                        </NavLink>
-                    </SidebarItem>
-
                     {user && (
                         <SidebarItem onClick={() => setIsSidebarOpen(false)}>
                             <NavLink as={Link} to="/mypage">
