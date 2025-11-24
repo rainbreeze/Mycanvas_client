@@ -1,14 +1,9 @@
 import React, { useState } from "react";
 import styled from "styled-components";
 
-// 0~23시간 배열
 const hours = Array.from({ length: 24 }, (_, i) => i);
-
-// LEFT/RIGHT 탭용 블록 배열 (생성 블록 포함)
 const leftBlocks = Array.from({ length: 7 }, (_, i) => i);
 const rightBlocks = Array.from({ length: 6 }, (_, i) => i);
-
-// BottomTab용 블록 배열 (생성 블록 포함)
 const bottomBlocks = Array.from({ length: 7 }, (_, i) => i);
 
 const DailyTrackerPage = () => {
@@ -23,11 +18,18 @@ const DailyTrackerPage = () => {
     setRecords(newRecords);
   };
 
+  // 작은 화면용 BottomTab 데이터
+  const responsiveTabs = [
+    { title: "주간 할 일", records: leftRecords, setRecords: setLeftRecords, blocks: leftBlocks },
+    { title: "자주 하는 활동", records: rightRecords, setRecords: setRightRecords, blocks: rightBlocks },
+    { title: "기타 활동", records: bottomRecords, setRecords: setBottomRecords, blocks: bottomBlocks },
+  ];
+
   return (
     <PageWrapper>
       <ContentWrapper>
         {/* LEFT 탭 */}
-        <SideTab>
+        <SideTab className="side-tab">
           <TabTitle>주간 할 일</TabTitle>
           <SideGrid>
             {leftBlocks.map((block, index) => (
@@ -58,10 +60,31 @@ const DailyTrackerPage = () => {
               </BlockWrapper>
             ))}
           </GridContainer>
+
+          {/* 작은 화면용 Bottom Tabs */}
+          <ResponsiveBottomTabs>
+            {responsiveTabs.map(({ title, records, setRecords, blocks }, i) => (
+              <BottomTab key={i}>
+                <TabTitle>{title}</TabTitle>
+                <BottomGrid>
+                  {blocks.map((block, index) => (
+                    <HourBlock
+                      key={index}
+                      $active={records[index]}
+                      $isCreate={index === blocks.length - 1}
+                      onClick={() => toggleBlock(records, setRecords, index)}
+                    >
+                      {index === blocks.length - 1 ? "+" : ""}
+                    </HourBlock>
+                  ))}
+                </BottomGrid>
+              </BottomTab>
+            ))}
+          </ResponsiveBottomTabs>
         </MainTracker>
 
         {/* RIGHT 탭 */}
-        <SideTab>
+        <SideTab className="side-tab">
           <TabTitle>자주 하는 활동</TabTitle>
           <SideGrid>
             {rightBlocks.map((block, index) => (
@@ -79,8 +102,8 @@ const DailyTrackerPage = () => {
         </SideTab>
       </ContentWrapper>
 
-      {/* Bottom Tab */}
-      <BottomTab>
+      {/* 기존 하단 BottomTab ("기타 활동") */}
+      <BottomTab className="bottom-tab">
         <TabTitle>기타 활동</TabTitle>
         <BottomGrid>
           {bottomBlocks.map((block, index) => (
@@ -118,6 +141,10 @@ const ContentWrapper = styled.div`
     flex-direction: column;
     align-items: center;
     gap: 20px;
+
+    .side-tab {
+      display: none;
+    }
   }
 `;
 
@@ -156,12 +183,12 @@ const TabTitle = styled.div`
 
 const SideGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(2, 1fr); /* 2열 */
+  grid-template-columns: repeat(2, 1fr);
   gap: 16px;
 `;
 
 const BottomTab = styled.div`
-  width: 85%;
+  width: 100%;
   max-width: 900px;
   background-color: #ffffff;
   border: 1px solid #000000;
@@ -169,11 +196,28 @@ const BottomTab = styled.div`
   padding: 2rem 1rem;
   margin: 2rem auto;
   text-align: center;
+
+  @media (max-width: 900px) {
+    &.bottom-tab {
+      display: none; /* 기존 하단 BottomTab 숨김 */
+    }
+  }
+`;
+
+const ResponsiveBottomTabs = styled.div`
+  display: none;
+
+  @media (max-width: 900px) {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 2rem;
+  }
 `;
 
 const BottomGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(8, 1fr); /* 8열 기준 */
+  grid-template-columns: repeat(8, 1fr);
   gap: 16px;
 
   @media (max-width: 1100px) {
@@ -218,21 +262,11 @@ const HourLabel = styled.div`
 
 const HourBlock = styled.div`
   background-color: ${({ $active, $isSideCreate, $isCreate }) =>
-    $isSideCreate || $isCreate
-      ? "#000"          // 생성 버튼: 검정 배경
-      : $active
-      ? "#2a2a2a"
-      : "#ffffff"};
+    $isSideCreate || $isCreate ? "#000" : $active ? "#2a2a2a" : "#ffffff"};
   color: ${({ $active, $isSideCreate, $isCreate }) =>
-    $isSideCreate || $isCreate
-      ? "#fff"          // 생성 버튼: 흰색 글씨
-      : $active
-      ? "#fff"
-      : "#000"};
+    $isSideCreate || $isCreate ? "#fff" : $active ? "#fff" : "#000"};
   border: ${({ $isSideCreate, $isCreate }) =>
-    $isSideCreate || $isCreate
-      ? "2px solid #fff" // 생성 버튼 테두리
-      : "1px solid #000"};
+    $isSideCreate || $isCreate ? "2px solid #fff" : "1px solid #000"};
   border-radius: 8px;
   aspect-ratio: 1 / 1;
   width: 100%;
@@ -246,10 +280,6 @@ const HourBlock = styled.div`
 
   &:hover {
     background-color: ${({ $active, $isSideCreate, $isCreate }) =>
-      $isSideCreate || $isCreate
-        ? "#333"       // 생성 버튼 hover
-        : $active
-        ? "#3a3a3a"
-        : "#f0f0f0"};
+      $isSideCreate || $isCreate ? "#333" : $active ? "#3a3a3a" : "#f0f0f0"};
   }
 `;
