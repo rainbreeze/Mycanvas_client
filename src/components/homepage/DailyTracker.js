@@ -1,16 +1,21 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import styled from "styled-components";
+import axios from "axios";
+import ActivityModal from "./ActivityModal"; // 모달 import
 
 const hours = Array.from({ length: 24 }, (_, i) => i);
 const leftBlocks = Array.from({ length: 7 }, (_, i) => i);
 const rightBlocks = Array.from({ length: 6 }, (_, i) => i);
-const bottomBlocks = Array.from({ length: 7 }, (_, i) => i);
 
 const DailyTrackerPage = () => {
   const [records, setRecords] = useState(Array(24).fill(false));
   const [leftRecords, setLeftRecords] = useState(Array(leftBlocks.length).fill(false));
   const [rightRecords, setRightRecords] = useState(Array(rightBlocks.length).fill(false));
-  const [bottomRecords, setBottomRecords] = useState(Array(bottomBlocks.length).fill(false));
+
+  const [bottomActivities, setBottomActivities] = useState([]);
+  const [bottomRecords, setBottomRecords] = useState([]);
+
+  const [showModal, setShowModal] = useState(false);
 
   const toggleBlock = (records, setRecords, index) => {
     const newRecords = [...records];
@@ -18,11 +23,25 @@ const DailyTrackerPage = () => {
     setRecords(newRecords);
   };
 
+  const fetchActivities = () => {
+    axios
+      .get(`${process.env.REACT_APP_API_URL}/activities`)
+      .then((res) => {
+        setBottomActivities(res.data);
+        setBottomRecords(Array(res.data.length).fill(false));
+      })
+      .catch((err) => console.error(err));
+  };
+
+  useEffect(() => {
+    fetchActivities();
+  }, []);
+
   // 작은 화면용 BottomTab 데이터
   const responsiveTabs = [
     { title: "주간 할 일", records: leftRecords, setRecords: setLeftRecords, blocks: leftBlocks },
     { title: "자주 하는 활동", records: rightRecords, setRecords: setRightRecords, blocks: rightBlocks },
-    { title: "기타 활동", records: bottomRecords, setRecords: setBottomRecords, blocks: bottomBlocks },
+    { title: "기타 활동", records: bottomRecords, setRecords: setBottomRecords, blocks: bottomActivities },
   ];
 
   return (
@@ -74,9 +93,19 @@ const DailyTrackerPage = () => {
                       $isCreate={index === blocks.length - 1}
                       onClick={() => toggleBlock(records, setRecords, index)}
                     >
-                      {index === blocks.length - 1 ? "+" : ""}
+                      {title === "기타 활동"
+                        ? block.name
+                        : index === blocks.length - 1
+                        ? "+"
+                        : ""}
                     </HourBlock>
                   ))}
+                  {/* 기타 활동 + 버튼 */}
+                  {title === "기타 활동" && (
+                    <HourBlock $isCreate onClick={() => setShowModal(true)}>
+                      +
+                    </HourBlock>
+                  )}
                 </BottomGrid>
               </BottomTab>
             ))}
@@ -102,22 +131,29 @@ const DailyTrackerPage = () => {
         </SideTab>
       </ContentWrapper>
 
-      {/* 기존 하단 BottomTab ("기타 활동") */}
+      {/* 기존 하단 BottomTab */}
       <BottomTab className="bottom-tab">
         <TabTitle>기타 활동</TabTitle>
         <BottomGrid>
-          {bottomBlocks.map((block, index) => (
+          {bottomActivities.map((activity, index) => (
             <HourBlock
               key={index}
               $active={bottomRecords[index]}
-              $isCreate={index === bottomBlocks.length - 1}
               onClick={() => toggleBlock(bottomRecords, setBottomRecords, index)}
             >
-              {index === bottomBlocks.length - 1 ? "+" : ""}
+              {activity.name}
             </HourBlock>
           ))}
+          <HourBlock $isCreate onClick={() => setShowModal(true)}>
+            +
+          </HourBlock>
         </BottomGrid>
       </BottomTab>
+
+      {/* 모달 */}
+      {showModal && (
+        <ActivityModal onClose={() => setShowModal(false)} onSuccess={fetchActivities} />
+      )}
     </PageWrapper>
   );
 };
@@ -200,7 +236,7 @@ const BottomTab = styled.div`
 
   @media (max-width: 900px) {
     &.bottom-tab {
-      display: none; /* 기존 하단 BottomTab 숨김 */
+      display: none;
     }
   }
 `;
