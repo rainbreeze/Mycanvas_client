@@ -2,11 +2,10 @@ import React, { useEffect } from 'react';
 import Header from '../common/Header';
 import Footer from '../common/Footer';
 import Middle from './Middle';
-import StartGameContainer from './StartGameContainer';
+import DailyTracker from './DailyTracker';
 import ImageSlider from './ImageSlider';
 import ContainerWrapper from './ContainerWrapper';
 import InfoCardContainer from './InfoCardContainer';
-import LiveRankingContainer from './LiveRankingContainer'
 
 const HomePage = () => {
     useEffect(() => {
@@ -21,10 +20,9 @@ const HomePage = () => {
             <Header />
             <Middle>
                 <ContainerWrapper>
-                    <StartGameContainer />
+                    <DailyTracker />
                     <InfoCardContainer></InfoCardContainer>
                     <ImageSlider />
-                    <LiveRankingContainer></LiveRankingContainer>
                 </ContainerWrapper>
             </Middle>
             <Footer />
