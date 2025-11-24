@@ -164,6 +164,7 @@ const Title = styled.h2`
 
 const SideTab = styled.div`
   width: 250px;
+  margin-top: 100px;
   background-color: #ffffff;
   border: 1px solid #000000;
   border-radius: 8px;
