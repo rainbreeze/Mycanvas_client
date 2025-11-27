@@ -1,20 +1,24 @@
 import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import axios from "axios";
-import ActivityModal from "./ActivityModal"; // 모달 import
+import ActivityModal from "./ActivityModal";
+
+import { DndProvider } from "react-dnd";
+import { HTML5Backend } from "react-dnd-html5-backend";
+import { useDrag, useDrop } from "react-dnd";
 
 const hours = Array.from({ length: 24 }, (_, i) => i);
 const leftBlocks = Array.from({ length: 7 }, (_, i) => i);
 const rightBlocks = Array.from({ length: 6 }, (_, i) => i);
 
 const DailyTrackerPage = () => {
-  const [records, setRecords] = useState(Array(24).fill(false));
   const [leftRecords, setLeftRecords] = useState(Array(leftBlocks.length).fill(false));
   const [rightRecords, setRightRecords] = useState(Array(rightBlocks.length).fill(false));
 
   const [bottomActivities, setBottomActivities] = useState([]);
   const [bottomRecords, setBottomRecords] = useState([]);
 
+  const [hourActivities, setHourActivities] = useState(Array(24).fill(null));
   const [showModal, setShowModal] = useState(false);
 
   const toggleBlock = (records, setRecords, index) => {
@@ -37,7 +41,65 @@ const DailyTrackerPage = () => {
     fetchActivities();
   }, []);
 
-  // 작은 화면용 BottomTab 데이터
+  // ⬇ 액티비티 블럭 드래그 컴포넌트
+  const DraggableActivity = ({ activity }) => {
+    const [{ isDragging }, dragRef] = useDrag({
+      type: "ACTIVITY",
+      item: { activity },
+      collect: (monitor) => ({
+        isDragging: monitor.isDragging(),
+      }),
+    });
+
+    return (
+      <HourBlock
+        ref={dragRef}
+        style={{
+          opacity: isDragging ? 0.4 : 1,
+        }}
+      >
+        {activity.name}
+      </HourBlock>
+    );
+  };
+
+  // ⬇ drop 가능 시간 블럭
+  const DroppableHourBlock = ({ hourIndex }) => {
+    const [{ isOver }, dropRef] = useDrop({
+      accept: "ACTIVITY",
+      drop: (item) => handleDropActivity(item.activity, hourIndex),
+      collect: (monitor) => ({
+        isOver: monitor.isOver(),
+      }),
+    });
+
+    return (
+      <HourBlock
+        ref={dropRef}
+        style={{
+          backgroundColor: isOver ? "#d1ffd1" : "#fff",
+          border: "1px solid #000",
+        }}
+      >
+        {hourActivities[hourIndex]?.name || ""}
+      </HourBlock>
+    );
+  };
+
+  // ⬇ drop 처리
+  const handleDropActivity = (activity, hourIndex) => {
+    const updated = [...hourActivities];
+    updated[hourIndex] = activity;
+    setHourActivities(updated);
+
+    // 서버 저장할 경우
+    // axios.post(`${process.env.REACT_APP_API_URL}/assign`, {
+    //   hour: hourIndex,
+    //   activityId: activity.id,
+    // });
+  };
+
+  // 모바일 tabs
   const responsiveTabs = [
     { title: "주간 할 일", records: leftRecords, setRecords: setLeftRecords, blocks: leftBlocks },
     { title: "자주 하는 활동", records: rightRecords, setRecords: setRightRecords, blocks: rightBlocks },
@@ -45,122 +107,112 @@ const DailyTrackerPage = () => {
   ];
 
   return (
-    <PageWrapper>
-      <ContentWrapper>
-        {/* LEFT 탭 */}
-        <SideTab className="side-tab">
-          <TabTitle>주간 할 일</TabTitle>
-          <SideGrid>
-            {leftBlocks.map((block, index) => (
-              <HourBlock
-                key={index}
-                $active={leftRecords[index]}
-                $isCreate={index === leftBlocks.length - 1}
-                $isSideCreate={index === leftBlocks.length - 1}
-                onClick={() => toggleBlock(leftRecords, setLeftRecords, index)}
-              >
-                {index === leftBlocks.length - 1 ? "+" : ""}
-              </HourBlock>
-            ))}
-          </SideGrid>
-        </SideTab>
-
-        {/* 메인 트래커 */}
-        <MainTracker>
-          <Title>일일 기록</Title>
-          <GridContainer>
-            {hours.map((hour, index) => (
-              <BlockWrapper key={index}>
-                <HourLabel>{hour}H</HourLabel>
+    <DndProvider backend={HTML5Backend}>
+      <PageWrapper>
+        <ContentWrapper>
+          {/* LEFT 탭 */}
+          <SideTab className="side-tab">
+            <TabTitle>주간 할 일</TabTitle>
+            <SideGrid>
+              {leftBlocks.map((block, index) => (
                 <HourBlock
-                  $active={records[index]}
-                  onClick={() => toggleBlock(records, setRecords, index)}
-                />
-              </BlockWrapper>
+                  key={index}
+                  $active={leftRecords[index]}
+                  $isCreate={index === leftBlocks.length - 1}
+                  $isSideCreate={index === leftBlocks.length - 1}
+                  onClick={() => toggleBlock(leftRecords, setLeftRecords, index)}
+                >
+                  {index === leftBlocks.length - 1 ? "+" : ""}
+                </HourBlock>
+              ))}
+            </SideGrid>
+          </SideTab>
+
+          {/* 메인 */}
+          <MainTracker>
+            <Title>일일 기록</Title>
+            <GridContainer>
+              {hours.map((hour, index) => (
+                <BlockWrapper key={index}>
+                  <HourLabel>{hour}H</HourLabel>
+                  <DroppableHourBlock hourIndex={index} />
+                </BlockWrapper>
+              ))}
+            </GridContainer>
+
+            {/* 모바일 탭 */}
+            <ResponsiveBottomTabs>
+              {responsiveTabs.map(({ title, records, setRecords, blocks }, i) => (
+                <BottomTab key={i}>
+                  <TabTitle>{title}</TabTitle>
+                  <BottomGrid>
+                    {title === "기타 활동"
+                      ? blocks.map((activity) => (
+                          <DraggableActivity key={activity.id} activity={activity} />
+                        ))
+                      : blocks.map((block, idx) => (
+                          <HourBlock
+                            key={idx}
+                            $active={records[idx]}
+                            $isCreate={idx === blocks.length - 1}
+                            onClick={() => toggleBlock(records, setRecords, idx)}
+                          >
+                            {idx === blocks.length - 1 ? "+" : ""}
+                          </HourBlock>
+                        ))}
+
+                    {title === "기타 활동" && (
+                      <HourBlock $isCreate onClick={() => setShowModal(true)}>
+                        +
+                      </HourBlock>
+                    )}
+                  </BottomGrid>
+                </BottomTab>
+              ))}
+            </ResponsiveBottomTabs>
+          </MainTracker>
+
+          {/* RIGHT 탭 */}
+          <SideTab className="side-tab">
+            <TabTitle>자주 하는 활동</TabTitle>
+            <SideGrid>
+              {rightBlocks.map((block, index) => (
+                <HourBlock
+                  key={index}
+                  $active={rightRecords[index]}
+                  $isCreate={index === rightBlocks.length - 1}
+                  $isSideCreate={index === rightBlocks.length - 1}
+                  onClick={() => toggleBlock(rightRecords, setRightRecords, index)}
+                >
+                  {index === rightBlocks.length - 1 ? "+" : ""}
+                </HourBlock>
+              ))}
+            </SideGrid>
+          </SideTab>
+        </ContentWrapper>
+
+        {/* 하단 기타 활동 */}
+        <BottomTab className="bottom-tab">
+          <TabTitle>기타 활동</TabTitle>
+          <BottomGrid>
+            {bottomActivities.map((activity) => (
+              <DraggableActivity key={activity.id} activity={activity} />
             ))}
-          </GridContainer>
+            <HourBlock $isCreate onClick={() => setShowModal(true)}>+</HourBlock>
+          </BottomGrid>
+        </BottomTab>
 
-          {/* 작은 화면용 Bottom Tabs */}
-          <ResponsiveBottomTabs>
-            {responsiveTabs.map(({ title, records, setRecords, blocks }, i) => (
-              <BottomTab key={i}>
-                <TabTitle>{title}</TabTitle>
-                <BottomGrid>
-                  {blocks.map((block, index) => (
-                    <HourBlock
-                      key={index}
-                      $active={records[index]}
-                      $isCreate={index === blocks.length - 1}
-                      onClick={() => toggleBlock(records, setRecords, index)}
-                    >
-                      {title === "기타 활동"
-                        ? block.name
-                        : index === blocks.length - 1
-                        ? "+"
-                        : ""}
-                    </HourBlock>
-                  ))}
-                  {/* 기타 활동 + 버튼 */}
-                  {title === "기타 활동" && (
-                    <HourBlock $isCreate onClick={() => setShowModal(true)}>
-                      +
-                    </HourBlock>
-                  )}
-                </BottomGrid>
-              </BottomTab>
-            ))}
-          </ResponsiveBottomTabs>
-        </MainTracker>
-
-        {/* RIGHT 탭 */}
-        <SideTab className="side-tab">
-          <TabTitle>자주 하는 활동</TabTitle>
-          <SideGrid>
-            {rightBlocks.map((block, index) => (
-              <HourBlock
-                key={index}
-                $active={rightRecords[index]}
-                $isCreate={index === rightBlocks.length - 1}
-                $isSideCreate={index === rightBlocks.length - 1}
-                onClick={() => toggleBlock(rightRecords, setRightRecords, index)}
-              >
-                {index === rightBlocks.length - 1 ? "+" : ""}
-              </HourBlock>
-            ))}
-          </SideGrid>
-        </SideTab>
-      </ContentWrapper>
-
-      {/* 기존 하단 BottomTab */}
-      <BottomTab className="bottom-tab">
-        <TabTitle>기타 활동</TabTitle>
-        <BottomGrid>
-          {bottomActivities.map((activity, index) => (
-            <HourBlock
-              key={index}
-              $active={bottomRecords[index]}
-              onClick={() => toggleBlock(bottomRecords, setBottomRecords, index)}
-            >
-              {activity.name}
-            </HourBlock>
-          ))}
-          <HourBlock $isCreate onClick={() => setShowModal(true)}>
-            +
-          </HourBlock>
-        </BottomGrid>
-      </BottomTab>
-
-      {/* 모달 */}
-      {showModal && (
-        <ActivityModal onClose={() => setShowModal(false)} onSuccess={fetchActivities} />
-      )}
-    </PageWrapper>
+        {showModal && (
+          <ActivityModal onClose={() => setShowModal(false)} onSuccess={fetchActivities} />
+        )}
+      </PageWrapper>
+    </DndProvider>
   );
 };
 
 export default DailyTrackerPage;
 
-// ================= styled-components =================
+/* ================= styled-components ================= */
 
 const PageWrapper = styled.div`
   width: 100%;
@@ -297,7 +349,7 @@ const HourLabel = styled.div`
   color: black;
 `;
 
-const HourBlock = styled.div`
+const HourBlock = styled.div.attrs({})`
   background-color: ${({ $active, $isSideCreate, $isCreate }) =>
     $isSideCreate || $isCreate ? "#000" : $active ? "#2a2a2a" : "#ffffff"};
   color: ${({ $active, $isSideCreate, $isCreate }) =>
@@ -314,9 +366,5 @@ const HourBlock = styled.div`
   font-weight: 700;
   font-size: 1.2rem;
   transition: 0.2s;
-
-  &:hover {
-    background-color: ${({ $active, $isSideCreate, $isCreate }) =>
-      $isSideCreate || $isCreate ? "#333" : $active ? "#3a3a3a" : "#f0f0f0"};
-  }
 `;
+
